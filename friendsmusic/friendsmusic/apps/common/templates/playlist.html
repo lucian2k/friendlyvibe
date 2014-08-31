@@ -1,9 +1,9 @@
 {% extends "base.html" %}
     {% block title %}
-    {{ request.user }}: Your FriendlyVidbe playlist
+    {{ request.user }}: Your FriendlyVibe playlist
     {% endblock %}
 
-    {% block extracss %}  
+    {% block extracss %}
     <link href="/static/css/ytv.css" type="text/css" rel="stylesheet" />
     <link href="/static/css/demo.css" type="text/css" rel="stylesheet" />
     {% endblock %}
@@ -12,21 +12,20 @@
     <div class="playlist">
         <div id="frame"></div>
 
-        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script type="text/javascript" src="/static/js/Youtube-TV-master/src/ytv.js"></script>
 
         <script>
-            
+
             $(window).load(function(){
-                
+
                 $('#frame').ytv({
                     accent: '#d51c18',
                     localapivideosurl: 'http://localhost:8085/go/json-playlist',
                     autoupdateinterval: 5*60
                 });
-                
+
             });
-            
+
         </script>
     </div>
     {% endblock %}

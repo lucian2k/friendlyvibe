@@ -9,9 +9,8 @@ urlpatterns = patterns('',
     url(r'^$', 'friendsmusic.apps.common.views.home', name='home'),
     url(r'^go/$', 'friendsmusic.apps.common.views.welcome', name='welcome'),
     url(r'^go/json-playlist$', 'friendsmusic.apps.common.views.json_playlist', name='json_playlist'),
-    (r'^fb/', include('django_facebook.urls')),
     url(r'^logout/$', 'friendsmusic.apps.common.views.logout_view', name='logout'),
-    # (r'^accounts/', include('django_facebook.auth_urls'))
+    url('', include('social.apps.django_app.urls', namespace='social')),
     # url(r'^friendsmusic/', include('friendsmusic.foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:

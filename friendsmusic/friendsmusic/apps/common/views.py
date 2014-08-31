@@ -11,27 +11,24 @@ from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.contrib.humanize.templatetags.humanize import naturaltime
 
-from django_facebook import api
-
 from friendsmusic.apps.common import tasks
 from friendsmusic.apps.common.models import Playlist, PlaylistItem
 from friendsmusic.apps.common.decorators import render_json
 
 def home(request):
-	context = RequestContext(request)
-
+	backends_connected = None
 	if request.user.is_authenticated():
-		return HttpResponseRedirect(reverse('welcome'))
+		backends_connected = [b.provider for b in request.user.social_auth.all()]
 
-	from bing import download_bing_wallpaper
+	# from bing import download_bing_wallpaper
 
 	# gather information on the bing wallpaper data
 	try: bing_wp_data = download_bing_wallpaper()
 	except: bing_wp_data = None
 
 	return render_to_response('home.html',
-							  {'bing': bing_wp_data},
-							  context)
+							  {'bing': bing_wp_data,
+							  'backends_on': backends_connected})
 
 def _update_playlist(request):
 	# check if there's an update

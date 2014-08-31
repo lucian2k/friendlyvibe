@@ -8,13 +8,34 @@
                             <h1><span class="label label-info">social profiles</span> to <span class="label label-warning">Youtube playlist</span></h1>
                             <p>Plug in your social accounts and we'll filter only the music to a Youtube playlist</p>
                             <p>
-                                <a class="btn btn-large btn-social btn-facebook" href="{% url 'facebook_connect' %}">
+                                {% if 'facebook' not in backends_on %}
+                                <a class="btn btn-large btn-social btn-facebook" href="{% url 'social:begin' 'facebook' %}" title="Connect your Facebook account">
                                     <i class="fa fa-facebook"></i>Facebook connect</a>
-                                <a class="btn btn-large btn-social btn-google-plus" href="#">
+                                {% endif %}
+                                <a class="btn btn-large btn-social btn-google-plus" href="{% url 'social:begin' 'google-oauth2' %}" title="Connect your Youtube account">
                                     <i class="fa fa-youtube"></i>Youtube connect</a>
                             </p>
                         </div>
                 </div>
             </div>
         </div>
+        {% if backends_on %}
+        <div class="container marketing">
+            <div class="row">
+                {% if 'facebook' in backends_on %}
+                <div class="col-lg-6">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <span class="btn btn-block btn-social btn-lg btn-facebook">
+                                <i class="fa fa-facebook"></i>Connected and collecting ...</span>
+                        </div>
+                        <div class="panel-body">
+                            <i>Music is being detected ...
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 {% endblock %}

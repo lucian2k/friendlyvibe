@@ -1,6 +1,6 @@
 from django.db import models
-
-from django_facebook.models import FacebookCustomUser
+from django.contrib.auth.models import User
+# from django_facebook.models import FacebookCustomUser
 
 PROVIDER_YOUTUBE = 1
 AVAIL_PROVIDERS = (
@@ -22,11 +22,11 @@ class Item(models.Model):
 
 	@property
 	def permalink(self):
-		if self.provider == PROVIDER_YOUTUBE: 
+		if self.provider == PROVIDER_YOUTUBE:
 			return 'http://www.youtube.com/watch?v=%s' % self.source_identifier
 
 class Playlist(models.Model):
-    user = models.ForeignKey(FacebookCustomUser)
+    user = models.ForeignKey(User)
     created_at = models.DateTimeField(auto_now_add=True)
     last_update = models.DateTimeField(auto_now=True)
 
@@ -39,6 +39,6 @@ class PlaylistItem(models.Model):
 	item_obj = models.ForeignKey(Item)
 
 	def __unicode__(self):
-		return u'Playlist item: %s, user: %s' % (self.item_obj.source_identifier, 
+		return u'Playlist item: %s, user: %s' % (self.item_obj.source_identifier,
 												self.playlist_obj.user)
 
