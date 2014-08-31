@@ -1,3 +1,4 @@
+{% load staticfiles %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -7,10 +8,10 @@
     <meta name="author" content="">
     <link rel="shortcut icon" href="../../assets/ico/favicon.png">
 
-    <title>{% block title %}FriendlyVibe - your friends create the playlist{% endblock %}</title>
+    <title>{% block title %}FriendlyVibe - think IFTT for social to Youtube{% endblock %}</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="/static/bootstrap3/css/bootstrap.css" rel="stylesheet">
+    <link href="{% static "bootstrap3/css/bootstrap.css" %}" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -19,7 +20,10 @@
     <![endif]-->
 
     <!-- Custom styles for this template -->
-    <link href="/static/bootstrap3/css/carousel.css" rel="stylesheet">
+    <link href="{% static "bootstrap3/css/carousel.css" %}" rel="stylesheet">
+    <link href="{% static "css/sticky-footer.css" %}" rel="stylesheet">
+    <link href="{% static "css/bootstrap-social.css" %}" rel="stylesheet">
+    <link href="{% static "css/font-awesome.css" %}" rel="stylesheet">
   </head>
 <body>
 
@@ -39,15 +43,13 @@
             </div>
             <div class="navbar-collapse collapse">
               <ul class="nav navbar-nav">
-                <li class="active"><a href="#">Home</a></li>
+                <li class="active"><a href="{% url 'home' %}" title="Start">Start</a></li>
                 <li><a href="#about">About</a></li>
               </ul>
               {% if request.user.is_authenticated %}
-              <ul class="nav navbar-right">
+              <ul class="nav navbar-nav navbar-right">
                 <li><a href="{% url 'logout' %}" title="Sign out" class="navbar-link">Sign out</a></li>
               </ul>
-              <p class="navbar-text pull-right">{{ request.user.facebook_name }}</p>
-              <p class="navbar-text pull-right"><img src="https://graph.facebook.com/{{ request.user.facebook_id }}/picture?width=20&height=20" title="" /></p>
               {% endif %}
             </div>
           </div>
@@ -61,11 +63,10 @@
       {% endblock %}
 
       {% block footer %}
-      <div class="container">
-        <footer>
-          <p class="pull-right"><a href="#">Back to top</a></p>
-          <p><a href="http://twitter.com/lucian2k" title="Twitter account">Get in touch (twitter)</a></p>
-        </footer>
+      <div class="footer">
+        <div class="container">
+          <p class="text-muted"><a href="http://twitter.com/lucian2k" title="Get in touch, follow twitter">Get in touch</a></p>
+        </div>
       </div>
       {% endblock %}
     <script src="/static/assets/js/jquery.js"></script>

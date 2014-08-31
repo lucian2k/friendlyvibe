@@ -1,44 +1,20 @@
 {% extends "base.html" %}
 
-        {% block content %}
- <div id="myCarousel" class="carousel slide">
-      <div class="carousel-inner">
-        <div class="item active">
-          {% if bing %}
-          <img src="{{ bing.image }}" alt="Music from Facebook / Twitter / Google+ to Youtube">
-          {% else %}
-          <img src="data:image/png;base64," data-src="holder.js/100%x500/auto/#777:#7a7a7a/text:First slide" alt="First slide">
-          {% endif %}
-          <div class="jumbotron">
-            <div class="carousel-caption">
-              <h1>Social circle to Youtube playlist</h1>
-              <p>Plug in your social accounts and we'll filter only the (good) music. Bonus: we'll' save the same playlist in your Youtube account as well ... and automatically update it</p>
-              <p><a class="btn btn-large btn-primary" href="{% url 'facebook_connect' %}">Facebook connect</a></p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div><!-- /.carousel -->        
-        <!-- Main hero unit for a primary marketing message or call to action -->
-
-      {% endblock %}
-
-      <div class="hero-unit">
-        <h1>Your friends create the playlist</h1>
-        <p>Connect your social accounts and we'll help discover the music</p>
-        <p>
-            <form action="{% url 'facebook_connect' %}" method="post">
-                {% csrf_token %}
-                <input type="hidden" value="{% url 'welcome' %}" name="next" />
-                <input type="hidden" value="/connect-error" name="error" />
-
-                <!--
-                use error next for a seperate error page
-                <input type="hidden" value="/error/" name="error_next" />
-                -->
-                <div id="facebook_login_redirect">
-                    <input type="image" src="http://e.fashiocdn.com/images/b_signin_facebook_small.png" /><br />
+{% block content %}
+        <div id="homecarousel" class="carousel slide">
+            <div class="carousel-inner">
+                <div class="item active" style="height: 400px;">
+                        <div class="carousel-caption">
+                            <h1><span class="label label-info">social profiles</span> to <span class="label label-warning">Youtube playlist</span></h1>
+                            <p>Plug in your social accounts and we'll filter only the music to a Youtube playlist</p>
+                            <p>
+                                <a class="btn btn-large btn-social btn-facebook" href="{% url 'facebook_connect' %}">
+                                    <i class="fa fa-facebook"></i>Facebook connect</a>
+                                <a class="btn btn-large btn-social btn-google-plus" href="#">
+                                    <i class="fa fa-youtube"></i>Youtube connect</a>
+                            </p>
+                        </div>
                 </div>
-            </form>
-        </p>
-      </div>
+            </div>
+        </div>
+{% endblock %}
