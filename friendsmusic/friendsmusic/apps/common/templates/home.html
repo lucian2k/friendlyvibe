@@ -3,7 +3,7 @@
 {% block content %}
         <div id="homecarousel" class="carousel slide">
             <div class="carousel-inner">
-                <div class="item active" style="height: 400px;">
+                <div class="item active" style="height: 300px;">
                         <div class="carousel-caption">
                             <h1><span class="label label-info">social profiles</span> to <span class="label label-warning">Youtube playlist</span></h1>
                             <p>Plug in your social accounts and we'll filter only the music to a Youtube playlist</p>
@@ -12,8 +12,10 @@
                                 <a class="btn btn-large btn-social btn-facebook" href="{% url 'social:begin' 'facebook' %}" title="Connect your Facebook account">
                                     <i class="fa fa-facebook"></i>Facebook connect</a>
                                 {% endif %}
+                                {% if 'google-oauth2' not in backends_on %}
                                 <a class="btn btn-large btn-social btn-google-plus" href="{% url 'social:begin' 'google-oauth2' %}" title="Connect your Youtube account">
                                     <i class="fa fa-youtube"></i>Youtube connect</a>
+                                {% endif %}
                             </p>
                         </div>
                 </div>
@@ -26,11 +28,30 @@
                 <div class="col-lg-6">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            <span class="btn btn-block btn-social btn-lg btn-facebook">
+                            <span class="btn btn-block btn-social btn-facebook">
                                 <i class="fa fa-facebook"></i>Connected and collecting ...</span>
                         </div>
                         <div class="panel-body">
-                            <i>Music is being detected ...
+                            <i>Music is being detected ...</i>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if 'google-oauth2' in backends_on %}
+                <div class="col-lg-6">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <span class="btn btn-block btn-social btn-google-plus">
+                                <i class="fa fa-youtube"></i>Connected</span>
+                        </div>
+                        <div class="panel-body">
+                            <div class="input-group">
+                                <span class="input-group-addon">Playlist title</span>
+                                <input type="text" class="form-control" placeholder="Playlist title" value="FriendlyVibe Social" />
+                                <span class="input-group-btn">
+                                    <button class="btn btn-primary" type="button">Rename</button>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -38,4 +59,17 @@
             </div>
         </div>
         {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var fbstatus = function() {
+
+    };
+
+    $(window).load(function(){
+        console.log('here')
+    });
+</script>
+
 {% endblock %}
