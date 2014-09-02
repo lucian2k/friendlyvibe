@@ -45,11 +45,11 @@
                                 <i class="fa fa-youtube"></i>Connected</span>
                         </div>
                         <div class="panel-body">
-                            <div class="input-group">
+                            <div class="input-group" id="yt_plname_template">
                                 <span class="input-group-addon">Playlist title</span>
                                 <input type="text" class="form-control" placeholder="Playlist title" value="FriendlyVibe Social" />
                                 <span class="input-group-btn">
-                                    <button class="btn btn-primary" type="button">Rename</button>
+                                    <button class="btn btn-primary" type="button" id="rename-playlist">Rename</button>
                                 </span>
                             </div>
                         </div>
@@ -63,12 +63,31 @@
 
 {% block extra_js %}
 <script>
-    var fbstatus = function() {
+    window.AppView = Backbone.View.extend({
+        el: $("body"),
+        events: {
+            "click #rename-playlist":  "savePlaylistName",
+        },
+        savePlaylistName: function (e) {
+            console.log(e)
+            console.log('here')
+        }
+    });
+    var appview = new AppView;
 
-    };
+    FBEntry = Backbone.Model.extend({
+        defaults: {
+            title: null,
+        },
+        initialize: function() {
+        }
+    });
+
+    var SocialEntries = Backbone.Collection.extend({
+        model: FBEntry
+    });
 
     $(window).load(function(){
-        console.log('here')
     });
 </script>
 
