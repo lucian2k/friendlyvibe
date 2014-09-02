@@ -2,10 +2,11 @@ import re
 import urllib
 import urlparse
 import datetime
+import requests
 
 from celery import task, subtask, group
 from apiclient.discovery import build
-from BeautifulSoup import BeautifulSoup 
+from BeautifulSoup import BeautifulSoup
 
 from django.conf import settings
 
@@ -14,8 +15,9 @@ from friendsmusic.apps.common.models import Item, Playlist, PlaylistItem, \
 											PROVIDER_YOUTUBE
 
 @task()
-def process_fb_feed(fb_obj, user_obj, feed_extra_params={'limit': 100}):
-	home_wall = fb_obj.get('/me/home', **feed_extra_params)
+def process_fb_feed(fb_token, user_obj, feed_extra_params={'limit': 100}):
+	home_wall_req = requests.get('https://graph.facebook.com/me/home/', params={'access_token': fb_token})
+	home_wall = home_wall_req.json()
 
 	return [_extract_youtube_id(wall_item.get('link', None)) for wall_item in home_wall.get('data', []) if _is_song(wall_item)]
 
@@ -29,18 +31,18 @@ def check_video(yt_id, *args, **kwargs):
 	""" See if the video is in the Music category """
 
 	c = Crawler()
-	page_content = c.fetchurl('http://www.youtube.com/watch?v=%s' % yt_id)
+	page_content = c.fetchurl('http://www.youtube.com/watch?v=%s&gl=US' % yt_id)
 	if not page_content:
 		print 'Could not fetch http://www.youtube.com/watch?v=%s!' % yt_id
 		return False, None, None
 
 	soup = BeautifulSoup(page_content)
-	
-	category_para = soup.find('p', {'id': 'eow-category'})
+
+	extras = soup.find('ul', attrs = {'class' : 'watch-extras-section'})
 	obj_title = soup.find('span', {'id': 'eow-title'})['title']
 
 	# detect if the item is in the music category
-	if '/music' in [t['href'] for t in category_para.findAll('a')]:
+	if '/music' in [t['href'] for t in extras.findAll('a')]:
 		return True, yt_id, obj_title
 
 	return False, None, None
@@ -49,7 +51,7 @@ def check_video(yt_id, *args, **kwargs):
 def add_entry_playlist(video_check, user_obj):
 
 	is_music, yt_id, obj_title = video_check
-	
+
 	if not is_music: return None
 
 	playlist_item, item_created = Item.objects.get_or_create(source_identifier=yt_id,
@@ -97,12 +99,16 @@ def _youtube_search(yt_id):
 
 def _extract_youtube_id(link):
 	if not link: return None
-	
+
 	url_data = urlparse.urlparse(link)
 	query = urlparse.parse_qs(url_data.query)
 
 	try: yt_id = query["v"][0]
 	except: yt_id = None
+
+	# parsing urls like http://youtu.be/WBKnpyoFEBo
+	if yt_id is None and url_data.netloc == 'youtu.be':
+		yt_id = url_data.path[1:]
 
 	print 'Extracted %s from %s' % (yt_id, link)
 
