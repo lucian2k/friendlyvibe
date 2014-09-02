@@ -16,15 +16,20 @@ from friendsmusic.apps.common.models import Playlist, PlaylistItem
 from friendsmusic.apps.common.decorators import render_json
 
 def home(request):
-	backends_connected = None
+	backends_connected = []
 	if request.user.is_authenticated():
 		backends_connected = [b.provider for b in request.user.social_auth.all()]
+
+		# fb connected?
+		if settings.BACKEND_FB_NAME in backends_connected:
+			_update_playlist(request)
 
 	# from bing import download_bing_wallpaper
 
 	# gather information on the bing wallpaper data
 	try: bing_wp_data = download_bing_wallpaper()
 	except: bing_wp_data = None
+
 
 	return render_to_response('home.html',
 							  {'bing': bing_wp_data,
@@ -33,14 +38,18 @@ def home(request):
 def _update_playlist(request):
 	# check if there's an update
 	cache_key = ('fb_update_timeout_%s') % request.user
+	cache_key = None
 	if not cache.get(cache_key):
 		# look into the user's fb account
-		open_fb_obj = api.get_facebook_graph(request, request.user.access_token)
-		chain = tasks.process_fb_feed.s(open_fb_obj, request.user) | \
+		social_obj = request.user.social_auth.get(provider='facebook')
+		access_token = social_obj.extra_data.get('access_token')
+
+		# open_fb_obj = api.get_facebook_graph(request, request.user.access_token)
+		chain = tasks.process_fb_feed.s(access_token, request.user) | \
 				tasks.video_map.s(tasks.check_video.s(), link=tasks.add_entry_playlist.s(request.user))
 		chain()
 
-		cache.set(cache_key, True, settings.FB_UPDATE_MIN_INTERVAL)
+		# cache.set(cache_key, True, settings.FB_UPDATE_MIN_INTERVAL)
 
 
 @login_required
