@@ -113,7 +113,6 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'friendsmusic.apps.common',
     'social.apps.django_app.default',
-    'djcelery',
     'djkombu',
     'south'
 )
