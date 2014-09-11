@@ -1,5 +1,6 @@
 import simplejson
 import time
+import httplib2
 
 from django.conf import settings
 from django.template.context import RequestContext
@@ -11,12 +12,16 @@ from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.contrib.humanize.templatetags.humanize import naturaltime
 
+from apiclient.discovery import build
+from oauth2client.client import AccessTokenCredentials
+
 from friendsmusic.apps.common import tasks
 from friendsmusic.apps.common.models import Playlist, PlaylistItem
 from friendsmusic.apps.common.decorators import render_json
 
 def home(request):
 	backends_connected = []
+	_create_playlist(request)
 	if request.user.is_authenticated():
 		backends_connected = [b.provider for b in request.user.social_auth.all()]
 
@@ -33,7 +38,16 @@ def home(request):
 
 	return render_to_response('home.html',
 							  {'bing': bing_wp_data,
-							  'backends_on': backends_connected})
+							  'backends_on': backends_connected},
+							  RequestContext(request))
+
+def _create_playlist(request):
+	youtube_obj = request.user.social_auth.get(provider='google-oauth2')
+	credentials = AccessTokenCredentials(
+		youtube_obj.extra_data.get('access_token'), 'friendlyvibe/1.0')
+	youtube = build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
+	print youtube
+	# print youtube
 
 def _update_playlist(request):
 	# check if there's an update
