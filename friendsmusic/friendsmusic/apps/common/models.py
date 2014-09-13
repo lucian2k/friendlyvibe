@@ -29,6 +29,8 @@ class Playlist(models.Model):
     user = models.ForeignKey(User)
     created_at = models.DateTimeField(auto_now_add=True)
     last_update = models.DateTimeField(auto_now=True)
+    youtube_pl_id = models.CharField(max_length=50, null=True)
+    youtube_pl_name = models.CharField(max_length=50, null=True)
 
     def __unicode__(self):
     	return u'Playlist ID: %s' % self.pk
