@@ -46,11 +46,15 @@
                         </div>
                         <div class="panel-body">
                             <div class="input-group" id="yt_plname_template">
+                                {% if playlist.yt_playlist_id %}
                                 <span class="input-group-addon">Playlist title</span>
                                 <input type="text" class="form-control" placeholder="Playlist title" value="FriendlyVibe Social" />
                                 <span class="input-group-btn">
                                     <button class="btn btn-primary" type="button" id="rename-playlist">Rename</button>
                                 </span>
+                                {% else %}
+                                    <i>Playlist is being created ...</i>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
