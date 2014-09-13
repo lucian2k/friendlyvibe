@@ -21,6 +21,8 @@ from friendsmusic.apps.common.decorators import render_json
 
 def home(request):
 	backends_connected = []
+	playlist = None
+
 	_create_playlist(request)
 	if request.user.is_authenticated():
 		backends_connected = [b.provider for b in request.user.social_auth.all()]
@@ -29,16 +31,13 @@ def home(request):
 		if settings.BACKEND_FB_NAME in backends_connected:
 			_update_playlist(request)
 
-	# from bing import download_bing_wallpaper
-
-	# gather information on the bing wallpaper data
-	try: bing_wp_data = download_bing_wallpaper()
-	except: bing_wp_data = None
-
+		# playlist info
+		playlist = Playlist.objects.get(user=request.user)
+		# youtube playlist not here - create it
 
 	return render_to_response('home.html',
-							  {'bing': bing_wp_data,
-							  'backends_on': backends_connected},
+							  {'backends_on': backends_connected,
+							  'playlist_obj': playlist},
 							  RequestContext(request))
 
 def _create_playlist(request):
@@ -46,7 +45,6 @@ def _create_playlist(request):
 	credentials = AccessTokenCredentials(
 		youtube_obj.extra_data.get('access_token'), 'friendlyvibe/1.0')
 	youtube = build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
-	print youtube
 	# print youtube
 
 def _update_playlist(request):
