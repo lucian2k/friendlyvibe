@@ -42,7 +42,11 @@
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             <span class="btn btn-block btn-social btn-google-plus">
+                                {% if playlist.yt_playlist_id %}
                                 <i class="fa fa-youtube"></i>Connected</span>
+                                {% else %}
+                                <i class="fa fa-youtube"></i>Connected, configure your playlist below</span>
+                                {% endif %}
                         </div>
                         <div class="panel-body">
                             <div class="input-group" id="yt_plname_template">
@@ -53,7 +57,14 @@
                                     <button class="btn btn-primary" type="button" id="rename-playlist">Rename</button>
                                 </span>
                                 {% else %}
-                                    <i>Playlist is being created ...</i>
+                                <span class="input-group-addon">Title</span>
+                                <input type="text" class="form-control" placeholder="Playlist title" value="{{ default_plname }}" />
+                                <span class="input-group-addon">
+                                <input type="checkbox" name="playlist-private" /> Make private
+                                </span>
+                                <span class="input-group-btn">
+                                    <button class="btn btn-primary" type="button" id="create-playlist">Create</button>
+                                </span>
                                 {% endif %}
                             </div>
                         </div>
@@ -87,9 +98,22 @@
         }
     });
 
+    YPlaylist = Backbone.Model.extend({
+        defaults: {
+            title: null,
+        },
+        initialize: function() {
+            console.log('playlist initialized')
+        },
+        url: '/playlist'
+    });
+
     var SocialEntries = Backbone.Collection.extend({
         model: FBEntry
     });
+
+    var ytplaylist = new YPlaylist();
+    ytplaylist.fetch();
 
     $(window).load(function(){
     });
