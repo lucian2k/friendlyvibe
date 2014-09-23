@@ -10,6 +10,7 @@ urlpatterns = patterns('',
     url(r'^go/$', 'friendsmusic.apps.common.views.welcome', name='welcome'),
     url(r'^go/json-playlist$', 'friendsmusic.apps.common.views.json_playlist', name='json_playlist'),
     url(r'^logout/$', 'friendsmusic.apps.common.views.logout_view', name='logout'),
+    url(r'^playlist/$', 'friendsmusic.apps.common.views.playlist', name='playlist'),
     url('', include('social.apps.django_app.urls', namespace='social')),
     # url(r'^friendsmusic/', include('friendsmusic.foo.urls')),
 
