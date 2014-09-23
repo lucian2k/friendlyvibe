@@ -6,7 +6,11 @@
                 <div class="item active" style="height: 300px;">
                         <div class="carousel-caption">
                             <h1><span class="label label-info">social profiles</span> to <span class="label label-warning">Youtube playlist</span></h1>
+                            {% if request.user.is_authenticated %}
+                            <p><code>Account status updates every minute ... see below</code></p>
+                            {% else %}
                             <p>Plug in your social accounts and we'll filter only the music to a Youtube playlist</p>
+                            {% endif %}
                             <p>
                                 {% if 'facebook' not in backends_on %}
                                 <a class="btn btn-large btn-social btn-facebook" href="{% url 'social:begin' 'facebook' %}" title="Connect your Facebook account">
@@ -58,9 +62,9 @@
                                 </span>
                                 {% else %}
                                 <span class="input-group-addon">Title</span>
-                                <input type="text" class="form-control" placeholder="Playlist title" value="{{ default_plname }}" />
+                                <input type="text" class="form-control" placeholder="Playlist title" value="" id="pl-title" />
                                 <span class="input-group-addon">
-                                <input type="checkbox" name="playlist-private" /> Make private
+                                <label><input type="checkbox" name="pl-private" id="pl-private" /> <span class="text-muted">Make private</span></label>
                                 </span>
                                 <span class="input-group-btn">
                                     <button class="btn btn-primary" type="button" id="create-playlist">Create</button>
@@ -78,18 +82,6 @@
 
 {% block extra_js %}
 <script>
-    window.AppView = Backbone.View.extend({
-        el: $("body"),
-        events: {
-            "click #rename-playlist":  "savePlaylistName",
-        },
-        savePlaylistName: function (e) {
-            console.log(e)
-            console.log('here')
-        }
-    });
-    var appview = new AppView;
-
     FBEntry = Backbone.Model.extend({
         defaults: {
             title: null,
@@ -101,19 +93,40 @@
     YPlaylist = Backbone.Model.extend({
         defaults: {
             title: null,
+            is_private: null
         },
         initialize: function() {
-            console.log('playlist initialized')
         },
-        url: '/playlist'
+        urlRoot: '{% url "playlist" %}'
     });
 
     var SocialEntries = Backbone.Collection.extend({
         model: FBEntry
     });
 
-    var ytplaylist = new YPlaylist();
-    ytplaylist.fetch();
+    window.PlaylistView = Backbone.View.extend({
+        el: $("#yt_plname_template"),
+        events: {
+            "click #create-playlist":  "savePlaylistName",
+        },
+        initialize: function() {
+            this.model = new YPlaylist()
+            this.model.fetch().then(function() { window.plview.render(); })
+        },
+        savePlaylistName: function (e) {
+            e.preventDefault();
+            var playlist_data = {title: this.$el.find('#pl-title').val()}
+
+            console.log(playlist_data)
+        },
+        render: function() {
+            console.log(this.model)
+            console.log(this.model.get("title"))
+            this.$el.find('#pl-title').val(this.model.get("title"));
+            this.$el.find('#pl-private').prop('checked', this.model.get("is_private"));
+        }
+    });
+    var plview = new PlaylistView;
 
     $(window).load(function(){
     });

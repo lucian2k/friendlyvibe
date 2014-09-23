@@ -14,7 +14,8 @@ from django.http import HttpResponseRedirect
 from django.contrib.humanize.templatetags.humanize import naturaltime
 
 from apiclient.discovery import build
-from oauth2client.client import AccessTokenCredentials
+from oauth2client.client import AccessTokenCredentials, AccessTokenCredentialsError
+from social.apps.django_app.utils import load_strategy
 
 from friendsmusic.apps.common import tasks
 from friendsmusic.apps.common.models import Playlist, PlaylistItem
@@ -25,7 +26,6 @@ def home(request):
     playlist = None
 
     if request.user.is_authenticated():
-        _create_remote_playlist(request)
         backends_connected = [b.provider for b in request.user.social_auth.all()]
 
         # fb connected?
@@ -42,33 +42,55 @@ def home(request):
                               'default_plname': settings.DEFAULT_YOUTUBE_PLNAME},
                               RequestContext(request))
 
+@render_json()
+def playlist(request):
+    try:
+        playlist = Playlist.objects.get(user=request.user).to_model()
+    except:
+        playlist = {'title': settings.DEFAULT_YOUTUBE_PLNAME,
+                    'is_private': False}
+
+    return playlist
+
 def _create_remote_playlist(request):
-    # chaking the local playlist
+    # cheking the local playlist
+    try:
+        youtube_obj = request.user.social_auth.get(provider='google-oauth2')
+    except:
+        return
+
     user_playlist, pl_created = Playlist.objects.get_or_create(user=request.user)
     if not pl_created: # set last update to now
         user_playlist.last_update = datetime.datetime.now()
         user_playlist.save()
 
     if user_playlist.youtube_pl_id is None:
-        youtube_obj = request.user.social_auth.get(provider='google-oauth2')
         credentials = AccessTokenCredentials(
             youtube_obj.extra_data.get('access_token'), 'friendlyvibe/1.0')
         youtube = build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
+
         try:
             new_playlist = youtube.playlists().insert(
                 part="snippet,status",
                 body=dict(
                     snippet=dict(
-                        title=setting.DEFAULT_YOUTUBE_PLNAME,
-                        description="A playlist automatically created and updated by friendlyvibe.com"
+                        title=settings.DEFAULT_YOUTUBE_PLNAME,
+                        description="A playlist automatically created and managed by friendlyvibe.com"
                     ),
-                status=dict(
-                    privacyStatus="private"
+                    status=dict(
+                        privacyStatus="private"
+                    )
                 )
-            ))
-        except Exception, e:
-            print str(e)
-        print youtube.playlists().list(part='id', mine=True).execute()
+            ).execute()
+
+            user_playlist.youtube_json = simplejson.dumps(new_playlist)
+            user_playlist.youtube_pl_id = new_playlist.get(u'id')
+            user_playlist.youtube_pl_name = settings.DEFAULT_YOUTUBE_PLNAME
+            user_playlist.save()
+
+        except AccessTokenCredentialsError, e:
+            # do some signal here to KNOW the user's youtube account is disconnected
+            print e
 
 def _update_playlist(request):
     # check if there's an update
