@@ -33,9 +33,14 @@ class Playlist(models.Model):
     youtube_pl_name = models.CharField(max_length=50, null=True)
     youtube_json = models.TextField(null=True, blank=True)
     youtube_last_err = models.TextField(null=True, blank=True)
+    is_private = models.BooleanField()
 
     def __unicode__(self):
     	return u'Playlist ID: %s' % self.pk
+
+    def to_model(self):
+        return {'title': self.youtube_pl_name,
+                'is_private': self.is_private}
 
 class PlaylistItem(models.Model):
 	wall_created = models.DateTimeField(db_index=True, auto_now=True)
