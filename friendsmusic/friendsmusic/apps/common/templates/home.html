@@ -7,7 +7,14 @@
                         <div class="carousel-caption">
                             <h1><span class="label label-info">social profiles</span> to <span class="label label-warning">Youtube playlist</span></h1>
                             {% if request.user.is_authenticated %}
-                            <p><code>Account status updates every minute ... see below</code></p>
+                                {% if not playlist_obj.youtube_pl_id %}
+                                <p><code>next: setup your youtube playlist name and privacy</code><br />
+                                <code>music is being collected ...</code><br />
+                                {% else %}
+                                <p><del><code>next: setup your youtube playlist name and privacy</code></del><br />
+                                <code>all good: music is being collected and pushed to Youtube!</code><br />
+                                {% endif %}
+                                </p>
                             {% else %}
                             <p>Plug in your social accounts and we'll filter only the music to a Youtube playlist</p>
                             {% endif %}
@@ -30,7 +37,7 @@
             <div class="row">
                 {% if 'facebook' in backends_on %}
                 <div class="col-lg-6">
-                    <div class="panel panel-default">
+                    <div class="panel panel-default" id="yt_items_list">
                         <div class="panel-heading">
                             <span class="btn btn-block btn-social btn-facebook">
                                 <i class="fa fa-facebook"></i>Connected and collecting ...</span>
@@ -46,15 +53,15 @@
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             <span class="btn btn-block btn-social btn-google-plus">
-                                {% if playlist.yt_playlist_id %}
-                                <i class="fa fa-youtube"></i>Connected</span>
+                                {% if playlist_obj.youtube_pl_id %}
+                                <i class="fa fa-youtube"></i>Connected <a href="https://www.youtube.com/playlist?list={{ playlist_obj.youtube_pl_id }}" title="{{ playlist_obj.youtube_pl_name }} on Youtube" target="_blank" class="btn btn-default btn-xs">Youtube link</a></span>
                                 {% else %}
-                                <i class="fa fa-youtube"></i>Connected, configure your playlist below</span>
+                                <i class="fa fa-youtube"></i>Connected, create your playlist below</span>
                                 {% endif %}
                         </div>
                         <div class="panel-body">
                             <div class="input-group" id="yt_plname_template">
-                                {% if playlist.yt_playlist_id %}
+                                {% if playlist_obj.youtube_pl_id %}
                                 <span class="input-group-addon">Playlist title</span>
                                 <input type="text" class="form-control" placeholder="Playlist title" value="FriendlyVibe Social" />
                                 <span class="input-group-btn">
@@ -101,7 +108,16 @@
     });
 
     var SocialEntries = Backbone.Collection.extend({
-        model: FBEntry
+        model: FBEntry,
+        url: '{%url "items" %}',
+    });
+
+    window.SocialItems = Backbone.View.extend({
+        el: $("#yt_items_list"),
+        initialize: function() {
+            this.itemscollection = new SocialEntries()
+            this.itemscollection.fetch();
+        }
     });
 
     window.PlaylistView = Backbone.View.extend({
@@ -115,20 +131,29 @@
         },
         savePlaylistName: function (e) {
             e.preventDefault();
-            var playlist_data = {title: this.$el.find('#pl-title').val()}
+            var playlist_data = {title: this.$el.find('#pl-title').val(),
+                                 is_private: this.$el.find('#pl-private').is(':checked')}
 
-            console.log(playlist_data)
+            this.model.save(playlist_data, {
+                success: function(model) {
+                    if (model.get('error') && (model.get('error').length > 0)) {
+                        alert('Booh, seems there was somme error in creating/updating the playlist.\nPlease try disconnecting Youtube and connect it again!')
+                    }
+                }
+            })
         },
         render: function() {
-            console.log(this.model)
-            console.log(this.model.get("title"))
             this.$el.find('#pl-title').val(this.model.get("title"));
             this.$el.find('#pl-private').prop('checked', this.model.get("is_private"));
         }
     });
     var plview = new PlaylistView;
+    var socialitems = new SocialItems;
 
     $(window).load(function(){
+        {% if not playlist_obj.youtube_pl_id %}
+        $('#pl-title').focus();
+        {% endif %}
     });
 </script>
 

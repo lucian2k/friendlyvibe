@@ -12,6 +12,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.contrib.humanize.templatetags.humanize import naturaltime
+from django.views.decorators.csrf import csrf_exempt
 
 from apiclient.discovery import build
 from oauth2client.client import AccessTokenCredentials, AccessTokenCredentialsError
@@ -33,8 +34,11 @@ def home(request):
             _update_playlist(request)
 
         # playlist info
-        playlist = Playlist.objects.get(user=request.user)
-        # youtube playlist not here - create it
+        playlist = None
+        try:
+            playlist = Playlist.objects.get(user=request.user)
+        except:
+            pass
 
     return render_to_response('home.html',
                               {'backends_on': backends_connected,
@@ -42,29 +46,42 @@ def home(request):
                               'default_plname': settings.DEFAULT_YOUTUBE_PLNAME},
                               RequestContext(request))
 
+@csrf_exempt
 @render_json()
 def playlist(request):
-    try:
-        playlist = Playlist.objects.get(user=request.user).to_model()
-    except:
-        playlist = {'title': settings.DEFAULT_YOUTUBE_PLNAME,
-                    'is_private': False}
+    if request.method == 'POST':
+        playlist_result = _create_remote_playlist(request)
+
+        playlist = playlist_result.get('playlist_obj').to_model()
+        playlist['error'] = playlist_result.get('error')
+    else:
+        try:
+            playlist = Playlist.objects.get(user=request.user).to_model()
+        except:
+            playlist = {'title': settings.DEFAULT_YOUTUBE_PLNAME,
+                        'is_private': False}
 
     return playlist
 
 def _create_remote_playlist(request):
     # cheking the local playlist
+    result = {'error': None, 'playlist_obj': None}
     try:
         youtube_obj = request.user.social_auth.get(provider='google-oauth2')
     except:
-        return
+        return result
 
     user_playlist, pl_created = Playlist.objects.get_or_create(user=request.user)
     if not pl_created: # set last update to now
         user_playlist.last_update = datetime.datetime.now()
         user_playlist.save()
+    else:
+        user_playlist.youtube_pl_name = settings.DEFAULT_YOUTUBE_PLNAME
+        user_playlist.save()
+    result['playlist_obj'] = user_playlist
 
-    if user_playlist.youtube_pl_id is None:
+    if user_playlist.youtube_pl_id is None and request.method == 'POST':
+        post_data = simplejson.loads(request.body)
         credentials = AccessTokenCredentials(
             youtube_obj.extra_data.get('access_token'), 'friendlyvibe/1.0')
         youtube = build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
@@ -78,24 +95,26 @@ def _create_remote_playlist(request):
                         description="A playlist automatically created and managed by friendlyvibe.com"
                     ),
                     status=dict(
-                        privacyStatus="private"
+                        privacyStatus='private' if post_data.get('is_private') is not False else 'public'
                     )
                 )
             ).execute()
 
             user_playlist.youtube_json = simplejson.dumps(new_playlist)
             user_playlist.youtube_pl_id = new_playlist.get(u'id')
-            user_playlist.youtube_pl_name = settings.DEFAULT_YOUTUBE_PLNAME
+            user_playlist.youtube_pl_name = post_data.get('title')
+            user_playlist.is_private = False if post_data.get('is_private') is None else True
             user_playlist.save()
 
-        except AccessTokenCredentialsError, e:
+        except Exception, e:
             # do some signal here to KNOW the user's youtube account is disconnected
-            print e
+            result['error'] = str(e)
+
+    return result
 
 def _update_playlist(request):
     # check if there's an update
     cache_key = ('fb_update_timeout_%s') % request.user
-    cache_key = None
     if not cache.get(cache_key):
         # look into the user's fb account
         social_obj = request.user.social_auth.get(provider='facebook')
@@ -106,8 +125,17 @@ def _update_playlist(request):
                 tasks.video_map.s(tasks.check_video.s(), link=tasks.add_entry_playlist.s(request.user))
         chain()
 
-        # cache.set(cache_key, True, settings.FB_UPDATE_MIN_INTERVAL)
+        cache.set(cache_key, True, settings.FB_UPDATE_MIN_INTERVAL)
 
+@login_required
+@render_json()
+def social_items(request):
+    try:
+        playlist = Playlist.objects.get(user=request.user)
+    except:
+        return []
+
+    return [i.item_obj.to_model() for i in playlist.playlistitem_set.all()]
 
 @login_required
 def welcome(request):
