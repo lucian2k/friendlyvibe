@@ -1,5 +1,4 @@
 import simplejson
-import time
 import httplib2
 import datetime
 
@@ -8,19 +7,18 @@ from django.template.context import RequestContext
 from django.shortcuts import render_to_response
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
 from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.views.decorators.csrf import csrf_exempt
 
 from apiclient.discovery import build
-from oauth2client.client import AccessTokenCredentials, AccessTokenCredentialsError
-from social.apps.django_app.utils import load_strategy
+from oauth2client.client import AccessTokenCredentials
 
 from friendsmusic.apps.common import tasks
 from friendsmusic.apps.common.models import Playlist, PlaylistItem
 from friendsmusic.apps.common.decorators import render_json
+
 
 def home(request):
     backends_connected = []
@@ -42,9 +40,10 @@ def home(request):
 
     return render_to_response('home.html',
                               {'backends_on': backends_connected,
-                              'playlist_obj': playlist,
-                              'default_plname': settings.DEFAULT_YOUTUBE_PLNAME},
+                               'playlist_obj': playlist,
+                               'default_plname': settings.DEFAULT_YOUTUBE_PLNAME},
                               RequestContext(request))
+
 
 @csrf_exempt
 @render_json()
@@ -63,6 +62,7 @@ def playlist(request):
 
     return playlist
 
+
 def _create_remote_playlist(request):
     # cheking the local playlist
     result = {'error': None, 'playlist_obj': None}
@@ -71,7 +71,8 @@ def _create_remote_playlist(request):
     except:
         return result
 
-    user_playlist, pl_created = Playlist.objects.get_or_create(user=request.user)
+    user_playlist, pl_created = \
+        Playlist.objects.get_or_create(user=request.user)
     if not pl_created: # set last update to now
         user_playlist.last_update = datetime.datetime.now()
         user_playlist.save()
@@ -112,6 +113,7 @@ def _create_remote_playlist(request):
 
     return result
 
+
 def _update_playlist(request):
     # check if there's an update
     cache_key = ('fb_update_timeout_%s') % request.user
@@ -120,12 +122,13 @@ def _update_playlist(request):
         social_obj = request.user.social_auth.get(provider='facebook')
         access_token = social_obj.extra_data.get('access_token')
 
-        # open_fb_obj = api.get_facebook_graph(request, request.user.access_token)
         chain = tasks.process_fb_feed.s(access_token, request.user) | \
-                tasks.video_map.s(tasks.check_video.s(), link=tasks.add_entry_playlist.s(request.user))
+            tasks.video_map.s(tasks.check_video.s(),
+                              link=tasks.add_entry_playlist.s(request.user))
         chain()
 
         cache.set(cache_key, True, settings.FB_UPDATE_MIN_INTERVAL)
+
 
 @login_required
 @render_json()
@@ -137,25 +140,30 @@ def social_items(request):
 
     return [i.item_obj.to_model() for i in playlist.playlistitem_set.all()]
 
+
 @login_required
 def welcome(request):
     context = RequestContext(request)
 
     # try to update the playlist
-    _update_playlist(request)
+    # _update_playlist(request)
+    tasks.sync_youtube_videos.delay()
 
     return render_to_response('playlist.html', context)
+
 
 @render_json()
 @login_required
 def json_playlist(request):
     last_item = request.GET.get('lu', 0) # signals that we should return only earlier items
 
-    playlist_items = PlaylistItem.objects.filter(playlist_obj__user=request.user)\
-                                                    .order_by('-wall_created')
+    playlist_items = PlaylistItem.objects.filter(
+        playlist_obj__user=request.user).order_by('-wall_created')
     if last_item:
-        try: playlist_items = playlist_items.filter(pk__gt=int(last_item))
-        except: pass
+        try:
+            playlist_items = playlist_items.filter(pk__gt=int(last_item))
+        except:
+            pass
 
     last_update = None
     try:
@@ -170,6 +178,7 @@ def json_playlist(request):
             'update_item': playlist_items[0].pk if len(playlist_items) > 0 else last_item,
             'last_update_human': naturaltime(last_update),
             'last_update': last_update.strftime('%s') if last_update else None}
+
 
 def logout_view(request):
     logout(request)
