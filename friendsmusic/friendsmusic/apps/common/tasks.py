@@ -2,6 +2,7 @@ import urlparse
 import datetime
 import requests
 import httplib2
+import simplejson
 
 from celery import task, subtask, group
 from apiclient.discovery import build
@@ -19,27 +20,39 @@ from friendsmusic.apps.common.models import Item, Playlist, PlaylistItem, \
 def sync_youtube_videos():
     playlist_users = Playlist.objects.exclude(youtube_pl_id__exact=None).\
         filter(youtube_last_err=None)
+
     for user_items in playlist_users:
         userobj = user_items.user.social_auth.get(provider='google-oauth2')
         credentials = AccessTokenCredentials(
             userobj.extra_data.get('access_token'), 'friendlyvibe/1.0')
-        youtube = build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
+        youtube = build(
+            'youtube', 'v3', http=credentials.authorize(httplib2.Http()))
 
         for plitem in user_items.playlistitem_set.filter(youtube_synced=None):
-            video_add = youtube.playlistItems().insert(
-                part="snippet",
-                body=dict(
-                    snippet=dict(
-                        playlistId=user_items.youtube_pl_id,
-                        resourceId=plitem.item_obj.source_identifier
+            try:
+                video_add = youtube.playlistItems().insert(
+                    part="snippet",
+                    body=dict(
+                        snippet=dict(
+                            playlistId=user_items.youtube_pl_id,
+                            resourceId=dict(
+                                kind='youtube#video',
+                                videoId=plitem.item_obj.source_identifier
+                            )
+                        )
                     )
-                )
-            ).execute()
-            print video_add
+                ).execute()
+            except Exception, e:
+                # record the error so next time we won't attempt to send it
+                plitem.playlist_obj.youtube_last_err = str(e)
+                plitem.save()
+                video_add = {}
 
-        upload_items = user_items.playlistitem_set.filter(youtube_synced=None)
-        print upload_items
-    pass
+            # make a note of the successfull answer
+            if video_add.get('id'):
+                plitem.youtube_synced = True
+                plitem.youtube_data = simplejson.dumps(video_add)
+                plitem.save()
 
 
 @task()
@@ -68,7 +81,7 @@ def check_video(yt_id, *args, **kwargs):
 
     soup = BeautifulSoup(page_content)
 
-    extras = soup.find('ul', attrs = {'class' : 'watch-extras-section'})
+    extras = soup.find('ul', attrs={'class': 'watch-extras-section'})
     obj_title = soup.find('span', {'id': 'eow-title'})['title']
 
     # detect if the item is in the music category

@@ -172,7 +172,7 @@ def json_playlist(request):
         pass
 
     # try to update the playlist
-    _update_playlist(request)
+    # _update_playlist(request)
 
     return {'results': [i.item_obj.to_json() for i in playlist_items],
             'update_item': playlist_items[0].pk if len(playlist_items) > 0 else last_item,
