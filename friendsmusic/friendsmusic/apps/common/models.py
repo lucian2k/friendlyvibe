@@ -51,6 +51,7 @@ class PlaylistItem(models.Model):
     item_obj = models.ForeignKey(Item)
     youtube_synced = models.DateTimeField(
         auto_now=False, auto_now_add=False, null=True)
+    youtube_data = models.TextField(null=True)
 
     def __unicode__(self):
         return u'Playlist item: %s, user: %s' % (self.item_obj.source_identifier,
