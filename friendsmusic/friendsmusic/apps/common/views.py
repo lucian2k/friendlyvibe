@@ -138,7 +138,7 @@ def social_items(request):
     except:
         return []
 
-    return [i.item_obj.to_model() for i in playlist.playlistitem_set.all()]
+    return [i.item_obj.to_json() for i in playlist.playlistitem_set.all()]
 
 
 @login_required
@@ -147,7 +147,7 @@ def welcome(request):
 
     # try to update the playlist
     # _update_playlist(request)
-    tasks.sync_youtube_videos.delay()
+    # tasks.sync_youtube_videos.delay()
 
     return render_to_response('playlist.html', context)
 

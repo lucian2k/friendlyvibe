@@ -37,16 +37,19 @@
             <div class="row">
                 {% if 'facebook' in backends_on %}
                 <div class="col-lg-6">
-                    <div class="panel panel-default" id="yt_items_list">
+                    <div class="panel panel-default">
                         <div class="panel-heading">
                             <span class="btn btn-block btn-social btn-facebook">
                                 <i class="fa fa-facebook"></i>Connected and collecting ...</span>
                         </div>
-                        <div class="panel-body">
+                        <div class="panel-body" id="yt_items_list">
                             <i>Music is being detected ...</i>
                         </div>
                     </div>
                 </div>
+                <script type="text/template" id="fb-items-template">
+                    <a href="#" title="">Video synced</a><span class="glyphicon glyphicon-cog uploaded"></span><span class="glyphicon glyphicon-thumbs-up pending"></span>
+                </script>
                 {% endif %}
                 {% if 'google-oauth2' in backends_on %}
                 <div class="col-lg-6">
@@ -117,6 +120,12 @@
         initialize: function() {
             this.itemscollection = new SocialEntries()
             this.itemscollection.fetch();
+            this.render();
+        },
+        render: function() {
+            var template = _.template( $("#fb-items-template").html(), {} );
+            this.$el.html( template );
+            console.log('rendering this funny shaite')
         }
     });
 
