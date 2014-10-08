@@ -7,7 +7,8 @@ import simplejson
 from celery import task, subtask, group
 from apiclient.discovery import build
 from BeautifulSoup import BeautifulSoup
-from oauth2client.client import AccessTokenCredentials
+from oauth2client.client import AccessTokenCredentials, AccessTokenCredentialsError
+from social.apps.django_app.utils import load_strategy
 
 from django.conf import settings
 
@@ -20,15 +21,19 @@ from friendsmusic.apps.common.models import Item, Playlist, PlaylistItem, \
 def sync_youtube_videos():
     playlist_users = Playlist.objects.exclude(youtube_pl_id__exact=None).\
         filter(youtube_last_err=None)
+    playlist_users = Playlist.objects.exclude(youtube_pl_id__exact=None)
 
     for user_items in playlist_users:
         userobj = user_items.user.social_auth.get(provider='google-oauth2')
         credentials = AccessTokenCredentials(
-            userobj.extra_data.get('access_token'), 'friendlyvibe/1.0')
+            userobj.extra_data.get('access_token'),  'friendlyvibe/1.0')
+        # credentials = OAuth2Credentials(
+        #     userobj.extra_data.get('access_token'), 'friendlyvibe/1.0')
         youtube = build(
             'youtube', 'v3', http=credentials.authorize(httplib2.Http()))
 
         for plitem in user_items.playlistitem_set.filter(youtube_synced=None):
+            video_add = {}
             try:
                 video_add = youtube.playlistItems().insert(
                     part="snippet",
@@ -42,16 +47,20 @@ def sync_youtube_videos():
                         )
                     )
                 ).execute()
+            except AccessTokenCredentialsError, e:
+                # refresh the token
+                strategy = load_strategy(backend='google-oauth2')
+                userobj.refresh_token(strategy)
             except Exception, e:
                 # record the error so next time we won't attempt to send it
                 plitem.playlist_obj.youtube_last_err = str(e)
-                plitem.save()
-                video_add = {}
+                plitem.playlist_obj.save()
 
             # make a note of the successfull answer
             if video_add.get('id'):
                 plitem.youtube_synced = True
                 plitem.youtube_data = simplejson.dumps(video_add)
+                plitem.youtube_synced = datetime.datetime.now()
                 plitem.save()
 
 
