@@ -138,7 +138,8 @@ def social_items(request):
     except:
         return []
 
-    return [i.item_obj.to_json() for i in playlist.playlistitem_set.all()]
+    return [dict(i.to_json(), **i.item_obj.to_json()) for i in
+            playlist.playlistitem_set.all().order_by('-wall_created')]
 
 
 @login_required

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-# from django_facebook.models import FacebookCustomUser
+from django.utils.timesince import timesince
 
 PROVIDER_YOUTUBE = 1
 AVAIL_PROVIDERS = (
@@ -54,6 +54,9 @@ class PlaylistItem(models.Model):
     youtube_data = models.TextField(null=True)
 
     def __unicode__(self):
-        return u'Playlist item: %s, user: %s' % (self.item_obj.source_identifier,
-                                                self.playlist_obj.user)
+        return u'Playlist item: %s, user: %s' % \
+            (self.item_obj.source_identifier, self.playlist_obj.user)
 
+    def to_json(self):
+        return {'timesince': '%s ago' % timesince(self.wall_created).split(', ')[0],
+                'synced': self.youtube_synced is not None}
