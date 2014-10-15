@@ -16,10 +16,13 @@ class Item(models.Model):
     def __unicode__(self):
         return u'Item id: %s, source id: %s' % (self.pk, self.source_identifier)
 
-    def to_json(self):
+    def to_json(self, playlist_id=None):
+        permalink = self.permalink
+        if playlist_id:
+            permalink = '%s&list=%s' % (self.permalink, playlist_id)
         return {'title': self.name,
                 'code': self.source_identifier,
-                'permalink': self.permalink}
+                'permalink': permalink}
 
     @property
     def permalink(self):

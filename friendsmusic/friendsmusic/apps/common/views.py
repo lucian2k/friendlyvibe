@@ -138,8 +138,8 @@ def social_items(request):
     except:
         return []
 
-    return [dict(i.to_json(), **i.item_obj.to_json()) for i in
-            playlist.playlistitem_set.all().order_by('-wall_created')]
+    return [dict(i.to_json(), **i.item_obj.to_json(playlist.youtube_pl_id))
+            for i in playlist.playlistitem_set.all().order_by('-wall_created')]
 
 
 @login_required
@@ -156,7 +156,8 @@ def welcome(request):
 @render_json()
 @login_required
 def json_playlist(request):
-    last_item = request.GET.get('lu', 0) # signals that we should return only earlier items
+    # signals that we should return only earlier items
+    last_item = request.GET.get('lu', 0)
 
     playlist_items = PlaylistItem.objects.filter(
         playlist_obj__user=request.user).order_by('-wall_created')

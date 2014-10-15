@@ -11,6 +11,7 @@ from oauth2client.client import AccessTokenCredentials, AccessTokenCredentialsEr
 from social.apps.django_app.utils import load_strategy
 
 from django.conf import settings
+from django.contrib.auth.models import User
 
 from friendsmusic.apps.common.crawler import Crawler
 from friendsmusic.apps.common.models import Item, Playlist, PlaylistItem, \
@@ -43,7 +44,8 @@ def sync_youtube_videos():
                             resourceId=dict(
                                 kind='youtube#video',
                                 videoId=plitem.item_obj.source_identifier
-                            )
+                            ),
+                            position=0
                         )
                     )
                 ).execute()
@@ -65,11 +67,27 @@ def sync_youtube_videos():
 
 
 @task()
+def update_all_fb_feeds():
+    # TODO: implement a mechanism that makes sure this method runs only once
+    for user in User.objects.all:
+        try:
+            social_obj = user.social_auth.get(provider='facebook')
+        except:
+            continue
+        access_token = social_obj.extra_data.get('access_token')
+        chain = process_fb_feed.s(access_token, user) | \
+            video_map.s(check_video.s(), link=add_entry_playlist.s(user))
+        chain()
+
+
+@task()
 def process_fb_feed(fb_token, user_obj, feed_extra_params={'limit': 100}):
-    home_wall_req = requests.get('https://graph.facebook.com/me/home/', params={'access_token': fb_token})
+    home_wall_req = requests.get('https://graph.facebook.com/me/home/',
+                                 params={'access_token': fb_token})
     home_wall = home_wall_req.json()
 
-    return [_extract_youtube_id(wall_item.get('link', None)) for wall_item in home_wall.get('data', []) if _is_song(wall_item)]
+    return [_extract_youtube_id(wall_item.get('link', None)) for wall_item
+            in home_wall.get('data', []) if _is_song(wall_item)]
 
 
 @task()
