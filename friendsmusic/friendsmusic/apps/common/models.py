@@ -43,6 +43,13 @@ class Playlist(models.Model):
     def __unicode__(self):
         return u'Playlist ID: %s' % self.pk
 
+    def should_update(self, new_name, new_privacy):
+        if self.youtube_pl_name == new_name and self.is_private == new_privacy\
+                and self.youtube_pl_id is not None:
+            return False
+
+        return True
+
     def to_model(self):
         return {'title': self.youtube_pl_name,
                 'is_private': self.is_private}

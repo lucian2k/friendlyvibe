@@ -71,7 +71,7 @@
                             <div class="input-group" id="yt_plname_template">
                                 {% if playlist_obj.youtube_pl_id %}
                                 <span class="input-group-addon">Playlist title</span>
-                                <input type="text" class="form-control" placeholder="Playlist title" value="FriendlyVibe Social" />
+                                <input type="text" class="form-control" placeholder="Playlist title" value="" id="pl-title" />
                                 <span class="input-group-addon">
                                 <label><input type="checkbox" name="pl-private" id="pl-private" /> <span class="text-muted">Make private</span></label>
                                 </span>
@@ -146,6 +146,8 @@
             if (compiled.length > 0) {
                 this.$el.html(compiled.join(''));
             }
+
+            window.setTimeout(_.bind(this.initialize, this), 10000)
         }
     });
 
@@ -153,6 +155,7 @@
         el: $("#yt_plname_template"),
         events: {
             "click #create-playlist":  "savePlaylistName",
+            "click #rename-playlist":  "savePlaylistName",
         },
         initialize: function() {
             this.model = new YPlaylist()

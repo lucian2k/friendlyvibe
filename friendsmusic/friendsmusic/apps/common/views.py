@@ -25,11 +25,16 @@ def home(request):
     playlist = None
 
     if request.user.is_authenticated():
-        backends_connected = [b.provider for b in request.user.social_auth.all()]
+        backends_connected = [b.provider for b in
+                              request.user.social_auth.all()]
 
         # fb connected?
         if settings.BACKEND_FB_NAME in backends_connected:
             _update_playlist(request)
+
+        # google connected?
+        if settings.BACKEND_GOOG_NAME in backends_connected:
+            _sync_youtube(request.user)
 
         # playlist info
         playlist = None
@@ -71,40 +76,84 @@ def _create_remote_playlist(request):
     except:
         return result
 
+    try:
+        post_data = simplejson.loads(request.body)
+    except:
+        post_data = {}
+
+    playlist_name = post_data.get('title', None)
+    playlist_is_private = post_data.get('is_private', None)
+    action_pl_update = False
+
     user_playlist, pl_created = \
         Playlist.objects.get_or_create(user=request.user)
     if not pl_created: # set last update to now
+        action_pl_update = user_playlist.should_update(
+            playlist_name, playlist_is_private)
         user_playlist.last_update = datetime.datetime.now()
         user_playlist.save()
     else:
-        user_playlist.youtube_pl_name = settings.DEFAULT_YOUTUBE_PLNAME
+        user_playlist.youtube_pl_name = playlist_name
         user_playlist.save()
     result['playlist_obj'] = user_playlist
 
     if user_playlist.youtube_pl_id is None and request.method == 'POST':
-        post_data = simplejson.loads(request.body)
         credentials = AccessTokenCredentials(
             youtube_obj.extra_data.get('access_token'), 'friendlyvibe/1.0')
-        youtube = build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
+        youtube = build(
+            'youtube', 'v3', http=credentials.authorize(httplib2.Http()))
 
+        # create the youtube playlist
+        if action_pl_update is False:
+            try:
+                new_playlist = youtube.playlists().insert(
+                    part="snippet,status",
+                    body=dict(
+                        snippet=dict(
+                            title=settings.DEFAULT_YOUTUBE_PLNAME,
+                            description="A playlist automatically created and managed by friendlyvibe.com"
+                        ),
+                        status=dict(
+                            privacyStatus='private' if playlist_is_private else 'public'
+                        )
+                    )
+                ).execute()
+
+                user_playlist.youtube_json = simplejson.dumps(new_playlist)
+                user_playlist.youtube_pl_id = new_playlist.get(u'id')
+                user_playlist.youtube_pl_name = playlist_name
+                user_playlist.is_private = False if playlist_is_private \
+                    is None else True
+                user_playlist.save()
+
+            except Exception, e:
+                # do some signal here to KNOW the user's youtube account is disconnected
+                result['error'] = str(e)
+    elif user_playlist.youtube_pl_id and action_pl_update:
+        credentials = AccessTokenCredentials(
+            youtube_obj.extra_data.get('access_token'), 'friendlyvibe/1.0')
+        youtube = build(
+            'youtube', 'v3', http=credentials.authorize(httplib2.Http()))
+
+        # update the existing playlist
         try:
-            new_playlist = youtube.playlists().insert(
+            new_playlist = youtube.playlists().update(
                 part="snippet,status",
                 body=dict(
+                    id=user_playlist.youtube_pl_id,
                     snippet=dict(
-                        title=settings.DEFAULT_YOUTUBE_PLNAME,
-                        description="A playlist automatically created and managed by friendlyvibe.com"
+                        title=playlist_name
                     ),
                     status=dict(
-                        privacyStatus='private' if post_data.get('is_private') is not False else 'public'
+                        privacyStatus='private' if playlist_is_private else 'public'
                     )
                 )
             ).execute()
 
             user_playlist.youtube_json = simplejson.dumps(new_playlist)
-            user_playlist.youtube_pl_id = new_playlist.get(u'id')
-            user_playlist.youtube_pl_name = post_data.get('title')
-            user_playlist.is_private = False if post_data.get('is_private') is None else True
+            user_playlist.youtube_pl_name = playlist_name
+            user_playlist.is_private = False if playlist_is_private \
+                is None else True
             user_playlist.save()
 
         except Exception, e:
@@ -127,6 +176,14 @@ def _update_playlist(request):
                               link=tasks.add_entry_playlist.s(request.user))
         chain()
 
+        cache.set(cache_key, True, settings.FB_UPDATE_MIN_INTERVAL)
+
+
+def _sync_youtube(user):
+    cache_key = ('yt_update_timeout_%s') % user
+
+    if cache.get(cache_key) is None:
+        tasks.sync_youtube_videos.delay(user)
         cache.set(cache_key, True, settings.FB_UPDATE_MIN_INTERVAL)
 
 

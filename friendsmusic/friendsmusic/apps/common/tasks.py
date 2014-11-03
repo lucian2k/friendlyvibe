@@ -19,17 +19,17 @@ from friendsmusic.apps.common.models import Item, Playlist, PlaylistItem, \
 
 
 @task()
-def sync_youtube_videos():
+def sync_youtube_videos(userobj=None):
     playlist_users = Playlist.objects.exclude(youtube_pl_id__exact=None).\
         filter(youtube_last_err=None)
     playlist_users = Playlist.objects.exclude(youtube_pl_id__exact=None)
+    if userobj:
+        playlist_users = playlist_users.filter(user=userobj)
 
     for user_items in playlist_users:
         userobj = user_items.user.social_auth.get(provider='google-oauth2')
         credentials = AccessTokenCredentials(
             userobj.extra_data.get('access_token'),  'friendlyvibe/1.0')
-        # credentials = OAuth2Credentials(
-        #     userobj.extra_data.get('access_token'), 'friendlyvibe/1.0')
         youtube = build(
             'youtube', 'v3', http=credentials.authorize(httplib2.Http()))
 
