@@ -122,8 +122,7 @@ def _create_remote_playlist(request):
                 user_playlist.youtube_json = simplejson.dumps(new_playlist)
                 user_playlist.youtube_pl_id = new_playlist.get(u'id')
                 user_playlist.youtube_pl_name = playlist_name
-                user_playlist.is_private = False if playlist_is_private \
-                    is None else True
+                user_playlist.is_private = playlist_is_private
                 user_playlist.save()
 
             except Exception, e:
@@ -152,8 +151,7 @@ def _create_remote_playlist(request):
 
             user_playlist.youtube_json = simplejson.dumps(new_playlist)
             user_playlist.youtube_pl_name = playlist_name
-            user_playlist.is_private = False if playlist_is_private \
-                is None else True
+            user_playlist.is_private = playlist_is_private
             user_playlist.save()
 
         except Exception, e:
