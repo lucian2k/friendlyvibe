@@ -69,7 +69,7 @@ def sync_youtube_videos(userobj=None):
 @task()
 def update_all_fb_feeds():
     # TODO: implement a mechanism that makes sure this method runs only once
-    for user in User.objects.all:
+    for user in User.objects.all():
         try:
             social_obj = user.social_auth.get(provider='facebook')
         except:
